@@ -76,7 +76,7 @@ void NetworkServiceDiscovery::Advertiser::sendBroadcast()
 
         message.setAttribute ("address", address.toString());
 
-        auto broadcastAddress = IPAddress::getInterfaceBroadcastAddress (address);
+        auto broadcastAddress = IPAddress::broadcast();
         auto data = message.toString (XmlElement::TextFormat().singleLine().withoutHeader());
 
         socket.write (broadcastAddress.toString(), broadcastPort, data.toRawUTF8(), (int) data.getNumBytesAsUTF8());
