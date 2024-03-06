@@ -239,7 +239,8 @@ int IPAddress::compare (const IPAddress& other) const noexcept
 }
 
 IPAddress IPAddress::any() noexcept               { return IPAddress(); }
-IPAddress IPAddress::broadcast() noexcept         { return IPAddress (255, 255, 255, 255); }
+IPAddress IPAddress::broadcast(bool IPv6) noexcept { return IPv6 ? IPAddress(0xff02, 0, 0, 0, 0, 0, 0, 1)
+                                                                 : IPAddress (255, 255, 255, 255); }
 IPAddress IPAddress::local (bool IPv6) noexcept   { return IPv6 ? IPAddress (0, 0, 0, 0, 0, 0, 0, 1)
                                                                 : IPAddress (127, 0, 0, 1); }
 

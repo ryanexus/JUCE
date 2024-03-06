@@ -68,15 +68,19 @@ void NetworkServiceDiscovery::Advertiser::run()
 void NetworkServiceDiscovery::Advertiser::sendBroadcast()
 {
     static IPAddress local = IPAddress::local();
+    static IPAddress local6 = IPAddress::local(true);
+    static IPAddress anyIP = IPAddress::any();
 
     for (auto& address : IPAddress::getAllAddresses())
     {
-        if (address == local)
+        if (address == local || address == local6)
+            continue;
+
+        auto broadcastAddress = IPAddress::getInterfaceBroadcastAddress(address);
+        if (broadcastAddress == anyIP)
             continue;
 
         message.setAttribute ("address", address.toString());
-
-        auto broadcastAddress = IPAddress::broadcast();
         auto data = message.toString (XmlElement::TextFormat().singleLine().withoutHeader());
 
         socket.write (broadcastAddress.toString(), broadcastPort, data.toRawUTF8(), (int) data.getNumBytesAsUTF8());

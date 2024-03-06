@@ -576,6 +576,65 @@ namespace MACAddressHelpers
     }
 }
 
+namespace InterfaceHelpers {
+    struct InterfaceInfo
+    {
+        IPAddress interfaceAddress, broadcastAddress;
+    };
+
+    /** required for addIfNotAlreadyThere */
+    inline bool operator== (const InterfaceInfo& a, const InterfaceInfo& b)
+    {
+        return a.interfaceAddress == b.interfaceAddress
+            && a.broadcastAddress == b.broadcastAddress;
+    }
+
+    static InterfaceInfo createInterface (const sockaddr_in6* sa_in6)
+    {
+        return { MACAddressHelpers::createAddress(sa_in6), IPAddress::broadcast(true) };
+    }
+
+    static InterfaceInfo createInterface (const sockaddr_in* sa_in, UINT8 prefixLength)
+    {
+        // maybe: derive a subnet mask from the prefix length
+        // u_long mask = prefixLength == 32 ? 0xffffffff : (1 << prefixLength) - 1;
+        // apply the mask to the address to get the broadcast address
+        // return { MACAddressHelpers::createAddress(sa_in), IPAddress (htonl(sa_in->sin_addr.s_addr | ~mask)) };
+        return { MACAddressHelpers::createAddress(sa_in), IPAddress::broadcast() };
+    };
+
+    template <typename Type>
+    static void findAddressBroadcastPair (Array<InterfaceInfo>& result, bool includeIPv6, Type cursor)
+    {
+        for (auto addr = cursor; cursor != nullptr; cursor = cursor->Next)
+        {
+            if (addr->Address.lpSockaddr->sa_family == AF_INET)
+                result.addIfNotAlreadyThere(createInterface(unalignedPointerCast<sockaddr_in*>(addr->Address.lpSockaddr), addr->OnLinkPrefixLength));
+            else if (addr->Address.lpSockaddr->sa_family == AF_INET6 && includeIPv6)
+                result.addIfNotAlreadyThere(createInterface(unalignedPointerCast<sockaddr_in6*>(addr->Address.lpSockaddr)));
+        }
+
+    };
+
+    Array<InterfaceInfo> getAllInterfaceInfo()
+    {
+        Array<InterfaceInfo> interfaces;
+        GetAdaptersAddressesHelper ah;
+
+        if (ah.callGetAdaptersAddresses())
+        {
+            for (PIP_ADAPTER_ADDRESSES a = ah.adaptersAddresses; a != nullptr; a = a->Next)
+            {
+                findAddressBroadcastPair(interfaces, true, a->FirstUnicastAddress);
+                // NOTE: the use case for the following two lines is unclear
+                // findAddressBroadcastPair(interfaces, true, a->FirstAnycastAddress);
+                // findAddressBroadcastPair(interfaces, true, a->FirstMulticastAddress);
+            }
+        }
+        return interfaces;
+    };
+}
+
 void MACAddress::findAllAddresses (Array<MACAddress>& result)
 {
     MACAddressHelpers::getViaGetAdaptersAddresses (result);
@@ -602,9 +661,14 @@ void IPAddress::findAllAddresses (Array<IPAddress>& result, bool includeIPv6)
     }
 }
 
-IPAddress IPAddress::getInterfaceBroadcastAddress (const IPAddress&)
+IPAddress IPAddress::getInterfaceBroadcastAddress (const IPAddress& address)
 {
-    // TODO
+    for (auto& i : InterfaceHelpers::getAllInterfaceInfo())
+    {
+        if (i.interfaceAddress == address)
+            return i.broadcastAddress;
+    }
+
     return {};
 }
 

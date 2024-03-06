@@ -36,8 +36,9 @@ public:
     /** Returns an IP address meaning "any", equivalent to 0.0.0.0 (IPv4) or ::, (IPv6)  */
     static IPAddress any() noexcept;
 
-    /** Returns an IPv4 address meaning "broadcast" (255.255.255.255) */
-    static IPAddress broadcast() noexcept;
+    /** Returns an IPv4 or IPv6 address meaning "broadcast", equivalent to 255.255.255.255 (IPv4) or 0xFF02:0:0:0:0:0:0:1 (IPv6)
+        see https://www.rfc-editor.org/rfc/rfc4291.html#page-15 */
+    static IPAddress broadcast(bool IPv6 = false) noexcept;
 
     /** Returns an IPv4 or IPv6 address meaning "localhost", equivalent to 127.0.0.1 (IPv4) or ::1 (IPv6) */
     static IPAddress local (bool IPv6 = false) noexcept;
